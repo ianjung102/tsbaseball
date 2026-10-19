@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>야구대회 기록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#12284c; --navy-2:#1d3a6b; --blue:#2f6bff; --blue-soft:#eaf0ff; --blue-line:#c9d7ff;
+  --red:#d7232e; --red-soft:#fdecee; --ink:#18202e; --muted:#5d6879; --line:#e1e6ef;
+  --bg:#f4f6fa; --card:#ffffff; --gold:#f2b705; --green:#178a4c;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR","Malgun Gothic",sans-serif;font-size:15px;line-height:1.6}
+b,strong{font-weight:700}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+/* ---------- 상단 히어로 ---------- */
+.hero{background:linear-gradient(120deg,#ffffff 0%,#ffffff 46%,var(--navy) 46.1%,var(--navy-2) 100%);border-bottom:6px solid var(--navy)}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;padding-top:36px;padding-bottom:32px}
+.hero .tag{display:inline-block;color:var(--navy);font-weight:700;border-bottom:3px solid var(--red);padding-bottom:2px;margin-bottom:10px}
+.hero h1{margin:0;font-size:40px;line-height:1.2;font-weight:900;color:var(--navy);letter-spacing:-1px}
+.hero h1 .r{color:var(--red)}
+.hero h1 small{display:block;font-size:22px;font-weight:900;color:var(--navy);margin-bottom:4px}
+.hero .asof{margin-top:14px;color:var(--muted);font-size:14px}
+.hero-info{align-self:center;display:grid;gap:10px}
+.hi{display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 16px;color:#fff}
+.hi .ic{flex:none;width:40px;height:40px;border-radius:50%;background:#fff;color:var(--navy);display:grid;place-items:center;font-weight:900}
+.hi .k{font-size:13px;color:#ffb3b8;font-weight:700}
+.hi .v{font-weight:700;font-size:16px}
+
+/* ---------- 내비 ---------- */
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto}
+nav.toc a{color:#dfe7f7;text-decoration:none;font-weight:700;padding:12px 14px;white-space:nowrap;border-bottom:3px solid transparent}
+nav.toc a:hover{color:#fff;border-bottom-color:var(--red)}
+
+/* ---------- 섹션 공통 ---------- */
+section{padding:36px 0 8px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 18px;padding-bottom:10px;border-bottom:2px solid var(--blue)}
+.sec-h .no{color:var(--red);font-weight:900;font-size:22px}
+.sec-h h2{margin:0;font-size:24px;font-weight:900;color:var(--navy)}
+.sec-h .sub{color:var(--muted);font-size:14px;margin-left:auto}
+h3{font-size:18px;font-weight:900;color:var(--navy);margin:28px 0 12px}
+h3 .chip{margin-left:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(18,40,76,.04)}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--blue-soft);color:var(--blue);vertical-align:middle}
+.chip.red{background:var(--red-soft);color:var(--red)}
+.chip.gray{background:#eef0f4;color:var(--muted)}
+.chip.green{background:#e6f6ed;color:var(--green)}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ---------- 표 ---------- */
+table{border-collapse:collapse;width:100%}
+.tbl th{background:var(--blue);color:#fff;font-weight:700;padding:9px 8px;white-space:nowrap;text-align:center;font-size:14px}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tbl td.l,.tbl th.l{text-align:left}
+.tbl tr.total td{background:var(--blue-soft);font-weight:700}
+.tbl tr.total td:first-child{color:var(--blue)}
+.tbl .hl{color:var(--red);font-weight:900}
+.tbl .empty td{color:var(--muted);padding:18px}
+
+/* ---------- 선수 카드 ---------- */
+.player{display:grid;grid-template-columns:260px 1fr;gap:16px}
+.pcard{background:linear-gradient(160deg,var(--navy),var(--navy-2));color:#fff;border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.pcard:after{content:"";position:absolute;right:-40px;bottom:-40px;width:150px;height:150px;border-radius:50%;border:14px solid rgba(255,255,255,.06)}
+.pcard .school{display:inline-block;background:var(--red);font-weight:700;font-size:13px;padding:2px 10px;border-radius:999px}
+.pcard .name{font-size:34px;font-weight:900;margin:10px 0 2px;letter-spacing:2px}
+.pcard .meta{color:#c9d5ec;font-size:14px}
+.pcard .team{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15);font-size:14px}
+.pcard .team b{color:#ffd2d5}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 10px;text-align:center}
+.kpi .k{font-size:13px;color:var(--muted);font-weight:700}
+.kpi .v{font-size:28px;font-weight:900;color:var(--navy);line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi.main{border-color:var(--red);background:var(--red-soft)}
+.kpi.main .v{color:var(--red)}
+.next{margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ng{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;padding:10px 12px;font-size:14px}
+.ng .d{font-weight:700;color:var(--blue)}
+.ng .vs{font-weight:700}
+
+/* ---------- 대회 정보 ---------- */
+.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.info{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.info .k{color:var(--red);font-weight:700;font-size:13px}
+.info .v{font-weight:700;font-size:16px;color:var(--navy)}
+.info .s{font-size:13px;color:var(--muted)}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:0;padding:0;list-style:none}
+.rules li{padding:7px 0 7px 18px;position:relative;border-bottom:1px dashed var(--line);font-size:14px}
+.rules li:before{content:"";position:absolute;left:2px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--blue)}
+.rules li b{color:var(--navy)}
+.groups{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.grp{background:var(--card);border:1px solid var(--blue-line);border-radius:12px;overflow:hidden}
+.grp .gh{background:var(--blue);color:#fff;font-weight:900;text-align:center;padding:8px;font-size:16px}
+.grp ul{list-style:none;margin:0;padding:6px 0}
+.grp li{text-align:center;padding:6px;font-weight:700;letter-spacing:4px}
+.grp li.me{color:var(--red);background:var(--red-soft)}
+
+/* ---------- 결선 대진표 ---------- */
+.bracket{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:0 18px;min-width:700px;padding:6px 2px}
+.round{display:flex;flex-direction:column}
+.round .rh{text-align:center;font-weight:900;color:var(--navy);margin-bottom:8px}
+.round .slots{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px}
+.m{background:var(--card);border:1px solid var(--blue-line);border-radius:10px;padding:8px 10px;font-size:13px}
+.m .t{display:flex;justify-content:space-between;font-weight:700;color:var(--muted)}
+.m .w{color:var(--blue);font-weight:700}
+.m.final{border:2px solid var(--red);background:var(--red-soft)}
+.m.final .w{color:var(--red)}
+
+/* ---------- 순위 ---------- */
+.stand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.stand .gname{color:var(--blue);font-weight:900}
+.stand td.team{font-weight:700;text-align:left;letter-spacing:2px}
+.stand tr.me td.team{color:var(--red)}
+.stand tr.me td{background:var(--red-soft)}
+.rank{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#eef0f4;font-size:12px;font-weight:700;color:var(--muted);margin-right:6px;letter-spacing:0}
+.rank.q{background:var(--blue);color:#fff}
+.pos{color:var(--blue);font-weight:700}
+.neg{color:var(--red);font-weight:700}
+
+/* ---------- 일자별 경기 ---------- */
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.day{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.day .dh{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--navy);color:#fff;font-weight:700}
+.day .dh .sat{color:#9fc0ff}.day .dh .sun{color:#ffaab0}
+.day.upcoming .dh{background:#6b778c}
+.day.off .dh{background:#a1a9b8}
+.g{display:grid;grid-template-columns:44px 1fr auto 1fr;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px}
+.g:last-child{border-bottom:0}
+.g .tm{font-size:12px;color:var(--muted)}
+.g .h{text-align:right;font-weight:500}
+.g .a{text-align:left;font-weight:500}
+.g .sc{font-weight:900;min-width:62px;text-align:center;font-variant-numeric:tabular-nums}
+.g .win{font-weight:900;color:var(--ink)}
+.g .lose{color:var(--muted)}
+.g .sc .ws{color:var(--red)}
+.g.me{background:var(--red-soft)}
+.g .pend{font-size:12px;font-weight:700;color:var(--muted)}
+.g .pend.warn{color:#b26a00}
+.day .offmsg{padding:16px;text-align:center;color:var(--muted);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+
+footer{margin:40px 0 0;padding:20px 0 30px;background:var(--navy);color:#c9d5ec;font-size:13px}
+
+@media (max-width:900px){
+  .hero{background:var(--navy)}
+  .hero .wrap{grid-template-columns:1fr}
+  .hero h1,.hero h1 small,.hero .tag{color:#fff}
+  .hero .asof{color:#c9d5ec}
+  .player{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .next{grid-template-columns:1fr}
+  .info-grid{grid-template-columns:1fr 1fr}
+  .rules{grid-template-columns:1fr}
+  .groups{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:520px){
+  .hero h1{font-size:30px}.hero h1 small{font-size:18px}
+  .info-grid{grid-template-columns:1fr}
+  .stand-grid,.days{grid-template-columns:1fr}
+}
+/* ---------- 대회 선택 ---------- */
+nav.toc .wrap{align-items:center}
+.tsel{display:flex;align-items:center;gap:8px;margin-right:10px;padding-right:14px;border-right:1px solid rgba(255,255,255,.18);flex:none}
+.tsel label{color:#ffb3b8;font-weight:700;font-size:13px;white-space:nowrap}
+.tsel select{font:inherit;font-weight:700;font-size:14px;color:var(--navy);background:#fff;border:0;border-radius:8px;padding:6px 10px;max-width:440px}
+.em{color:var(--red)}
+/* ---------- 잠금 화면 ---------- */
+[hidden]{display:none !important}
+.lock{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:linear-gradient(150deg,var(--navy),var(--navy-2))}
+.lock-card{width:100%;max-width:360px;background:#fff;border-radius:18px;padding:30px 24px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25);border-top:6px solid var(--red)}
+.lock-ic{font-size:40px;line-height:1}
+.lock-title{font-size:24px;font-weight:900;color:var(--navy);margin-top:10px}
+.lock-sub{color:var(--muted);font-size:14px;margin:6px 0 18px}
+.lock-card input{width:100%;font:inherit;font-size:20px;font-weight:700;letter-spacing:6px;text-align:center;padding:12px;border:2px solid var(--blue-line);border-radius:10px;color:var(--navy);outline:none}
+.lock-card input:focus{border-color:var(--blue)}
+.lock-card input::placeholder{letter-spacing:0;font-weight:500;font-size:16px;color:#9aa4b5}
+.lock-card button{width:100%;margin-top:12px;font:inherit;font-weight:700;font-size:16px;color:#fff;background:var(--blue);border:0;border-radius:10px;padding:12px;cursor:pointer}
+.lock-card button:disabled{opacity:.6;cursor:wait}
+.lock-err{min-height:22px;margin-top:10px;color:var(--red);font-weight:700;font-size:14px}
+.groups{grid-template-columns:repeat(var(--gcols,5),1fr)}
+@media (max-width:900px){ .groups{grid-template-columns:repeat(2,1fr)} }
+.empty-box{background:var(--card);border:1px dashed var(--blue-line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+@media (max-width:520px){ .tsel select{max-width:200px} }
+</style>
+</head>
+<body>
+
+<!-- ================= 잠금 화면 ================= -->
+<div id="lock" class="lock">
+  <form id="lockForm" class="lock-card" autocomplete="off">
+    <div class="lock-ic">⚾</div>
+    <div class="lock-title">야구대회 기록</div>
+    <div class="lock-sub">비밀번호를 입력하면 기록을 볼 수 있습니다.</div>
+    <input id="lockPw" type="password" inputmode="numeric" placeholder="비밀번호" aria-label="비밀번호">
+    <button id="lockBtn" type="submit">열기</button>
+    <div id="lockErr" class="lock-err" role="alert"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="tag" id="hTag"></span>
+      <h1><small id="hSmall"></small><span id="hTitle"></span></h1>
+      <div class="asof" id="asof"></div>
+    </div>
+    <div class="hero-info" id="hItems"></div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap">
+  <div class="tsel"><label for="tSel">대회</label><select id="tSel"></select></div>
+  <a href="#player">① 선수 기록</a>
+  <a href="#info">② 대회 정보·대진표</a>
+  <a href="#results">③ 경기 결과</a>
+</div></nav>
+
+<main class="wrap">
+
+<!-- ================= ① 선수 기록 ================= -->
+<section id="player">
+  <div class="sec-h"><span class="no">01</span><h2>선수 기록</h2><span class="sub">대회 합산 · 경기별</span></div>
+  <div id="playerBody">
+    <div class="player">
+      <div class="pcard">
+        <span class="school" id="pSchool"></span>
+        <div class="name" id="pName"></div>
+        <div class="meta" id="pMeta"></div>
+        <div class="team" id="teamSummary"></div>
+      </div>
+      <div>
+        <div class="kpis" id="kpis"></div>
+        <div class="next" id="nextGames"></div>
+      </div>
+    </div>
+
+    <h3>타자 기록 <span class="chip">대회 합산 + 경기별</span></h3>
+    <div class="card scroll"><table class="tbl" id="batTbl"></table></div>
+
+    <h3>투수 기록 <span class="chip">대회 합산 + 경기별</span></h3>
+    <div class="card scroll"><table class="tbl" id="pitTbl"></table></div>
+    <div class="note">방어율·WHIP는 이닝을 아웃카운트로 환산해 계산합니다 (2.1 = 2⅓이닝). 빈 기록은 0으로 봅니다.</div>
+  </div>
+  <div class="empty-box" id="playerEmpty" hidden>이 대회에는 입력된 선수 기록이 없습니다. 대회 폴더에 값입력.xlsx를 넣고 /bb-update를 실행하세요.</div>
+</section>
+
+<!-- ================= ② 대회 정보·대진표 ================= -->
+<section id="info">
+  <div class="sec-h"><span class="no">02</span><h2>대회 정보 · 대진표</h2><span class="sub">대진표 PDF 기준</span></div>
+
+  <div class="info-grid" id="infoGrid"></div>
+
+  <h3>주요 규정</h3>
+  <div class="card"><ul class="rules" id="rules"></ul></div>
+
+  <h3>조 편성</h3>
+  <div class="groups" id="groups"></div>
+
+  <div id="bracketWrap">
+    <h3><span id="bTitle"></span> <span class="chip gray" id="bStatus"></span></h3>
+    <div class="card scroll"><div class="bracket" id="bracket"></div></div>
+    <div class="note" id="bNote"></div>
+  </div>
+</section>
+
+<!-- ================= ③ 경기 결과 ================= -->
+<section id="results">
+  <div class="sec-h"><span class="no">03</span><h2>경기 결과</h2><span class="sub" id="resSub"></span></div>
+
+  <h3>조별 순위</h3>
+  <div class="stand-grid" id="standings"></div>
+  <div class="note" id="standNote"></div>
+
+  <h3>일자별 전체 경기</h3>
+  <div class="legend">
+    <span><b style="color:var(--red)">빨간 숫자</b> 승리팀 점수</span>
+    <span class="chip red" id="meChip"></span> <span id="meLabel"></span>
+    <span class="chip gray">결과 대기</span> 경기 진행 후 미입력
+    <span class="chip" style="background:#fff4e0;color:#b26a00">결과 미등록</span> 협회 사이트에 없음
+  </div>
+  <div class="days" id="days"></div>
+</section>
+
+</main>
+
+<footer><div class="wrap" id="footer"></div></footer>
+</div>
+
+<script>
+/* ===================== 데이터 (bb-update 스킬이 자동 갱신하는 영역) ===================== */
+/*DATA-START*/
+const ENC = {"v":1,"iter":200000,"salt":"pJT5XDFb7SaqG6jgZ6LuIA==","iv":"wUsA3dumvgblxVOtGQIjjg==","ct":"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"};
+/*DATA-END*/
+
+/* ===================== 공통 유틸 ===================== */
+const $ = id => document.getElementById(id);
+const f3s = x => (x===null||!isFinite(x)) ? "-" : (x>=1 ? x.toFixed(3) : x.toFixed(3).replace(/^0/,""));
+const f2 = x => (x===null||!isFinite(x)) ? "-" : x.toFixed(2);
+const sp = s => s.length===2 ? s[0]+" "+s[1] : s;
+const dnum = d => { const [m,dd]=d.split("/").map(Number); return m*100+dd; };
+const DOW = "일월화수목금토";
+const outsOf = ip => Math.floor(ip)*3 + Math.round((ip%1)*10);
+const ipStr = o => Math.floor(o/3) + (o%3 ? "."+(o%3) : "");
+const BK = ["G","PA","AB","B1","B2","B3","HR","R","RBI","BB","IBB","HBP","SO","SH","SF","SB"];
+const PK = ["W","L","G","BF","NP","H","R","ER","HR","BB","IBB","HBP","WP","BK","SO"];
+const sumOf = (rows,keys) => keys.reduce((o,k)=>(o[k]=rows.reduce((s,g)=>s+(Number(g[k])||0),0),o),{});
+function batCalc(r){
+  const H = r.B1+r.B2+r.B3+r.HR, TB = r.B1+2*r.B2+3*r.B3+4*r.HR, XBH = r.B2+r.B3+r.HR;
+  const avg = r.AB ? H/r.AB : null;
+  const obpDen = r.AB+r.BB+r.HBP+r.SF;
+  const ops = (r.AB && obpDen) ? (H+r.BB+r.HBP)/obpDen + TB/r.AB : null;
+  return {...r, H, TB, XBH, avg, ops};
+}
+function pitCalc(r){
+  const outs = outsOf(r.IP||0), inn = outs/3;
+  return {...r, outs, ipS: ipStr(outs),
+    wpct: (r.W+r.L) ? r.W/(r.W+r.L) : null,
+    era: inn ? r.ER*9/inn : null,
+    whip: inn ? (r.H+r.BB)/inn : null};
+}
+const startKey = t => t.config.year*10000 + dnum(t.config.period.start);
+
+/* ===================== 비밀번호 잠금 해제 ===================== */
+// 데이터는 비밀번호로 암호화되어 있음 (PBKDF2-SHA256 → AES-256-CBC). 비밀번호가 맞아야 복호화됨.
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decryptData(pw){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(ENC.salt), iterations:ENC.iter, hash:"SHA-256"},
+    base, {name:"AES-CBC", length:256}, false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({name:"AES-CBC", iv:b64(ENC.iv)}, key, b64(ENC.ct));
+  const obj = JSON.parse(new TextDecoder().decode(plain));
+  if(!obj || obj.check !== "bb-ok" || !Array.isArray(obj.tournaments)) throw new Error("bad");
+  return obj.tournaments;
+}
+async function unlock(pw, remember){
+  $("lockErr").textContent = ""; $("lockBtn").disabled = true; $("lockBtn").textContent = "확인 중…";
+  try{
+    const ts = await decryptData(pw);
+    if(remember){ try{ sessionStorage.setItem("bb-pw", pw); }catch(e){} }
+    $("lock").hidden = true; $("app").hidden = false;
+    start(ts);
+  }catch(e){
+    try{ sessionStorage.removeItem("bb-pw"); }catch(err){}
+    $("lockErr").textContent = "비밀번호가 맞지 않습니다.";
+    $("lockPw").value = ""; $("lockPw").focus();
+  }finally{ $("lockBtn").disabled = false; $("lockBtn").textContent = "열기"; }
+}
+$("lockForm").addEventListener("submit", e => { e.preventDefault(); const pw = $("lockPw").value.trim(); if(pw) unlock(pw, true); });
+if(!window.crypto || !crypto.subtle){
+  $("lockErr").textContent = "이 브라우저에서는 열 수 없습니다. Chrome·Edge·Safari 최신 버전을 사용하세요.";
+} else {
+  let saved = null; try{ saved = sessionStorage.getItem("bb-pw"); }catch(e){}
+  if(saved) unlock(saved, false); else $("lockPw").focus();
+}
+
+/* ===================== 대회 선택 ===================== */
+function start(TOURNAMENTS){
+  // 시작일이 늦은(최신) 대회가 위. 시작일이 같으면 이름순
+  const list = TOURNAMENTS.slice().sort((a,b)=>(startKey(b)-startKey(a)) || a.config.name.localeCompare(b.config.name,"ko"));
+  const pickInitial = () => {
+    const h = decodeURIComponent(location.hash.replace(/^#(t=)?/,""));
+    if(list.some(t=>t.config.id===h)) return h;
+    try{ const s = localStorage.getItem("bb-tournament"); if(list.some(t=>t.config.id===s)) return s; }catch(e){}
+    return list.length ? list[0].config.id : null;
+  };
+  const startLabel = c => { const [m,d] = c.period.start.split("/"); return `${c.year}.${m.padStart(2,"0")}.${d.padStart(2,"0")}`; };
+  $("tSel").innerHTML = list.map(t=>`<option value="${t.config.id}">${startLabel(t.config)} · ${t.config.name}</option>`).join("");
+  $("tSel").addEventListener("change", e=>{
+    const id = e.target.value;
+    try{ localStorage.setItem("bb-tournament", id); }catch(err){}
+    try{ history.replaceState(null, "", "#"+id); }catch(err){}
+    render(list.find(t=>t.config.id===id));
+  });
+  const init = pickInitial();
+  if(init){ $("tSel").value = init; render(list.find(t=>t.config.id===init)); }
+  else { document.querySelector("main").innerHTML = `<div class="empty-box" style="margin:40px 0">등록된 대회가 없습니다. 대회 폴더에 대회설정.json을 넣고 /bb-update를 실행하세요.</div>`; }
+}
+
+/* ===================== 대회 화면 그리기 ===================== */
+function render(T){
+  const C = T.config, D = T.data;
+  const YEAR = C.year, GROUPS = C.groups, TIMES = C.times, SCHEDULE = C.schedule, ADV = C.advance || 0;
+  const dowOf = d => { const [m,dd]=d.split("/").map(Number); return DOW[new Date(YEAR,m-1,dd).getDay()]; };
+  const groupOf = t => Object.keys(GROUPS).find(g => GROUPS[g].includes(t));
+  const school = (D.player && D.player.school) || "";
+  const ME = school.replace(/중$|고$|초$/,"");
+  document.title = C.name + " 기록";
+
+  /* ---- 경기 목록 (일정 + 결과 병합) ---- */
+  const RES = {};
+  D.results.forEach(r => RES[r.d+"|"+r.h+"|"+r.a] = r);
+  const used = new Set();
+  const lastPlayed = D.results.filter(r=>r.hs!=null).map(r=>r.d).sort((a,b)=>dnum(a)-dnum(b)).pop() || "";
+  const GAMES = [];
+  const lookup = (d,h,a) => {
+    let r = RES[d+"|"+h+"|"+a]; if(r){used.add(r);return {hs:r.hs,as:r.as,found:true};}
+    r = RES[d+"|"+a+"|"+h]; if(r){used.add(r);return {hs:r.as,as:r.hs,found:true};}
+    return {found:false};
+  };
+  SCHEDULE.forEach(([d,lst])=>{
+    if(!Array.isArray(lst)) return;
+    lst.forEach((m,i)=>{
+      if(!m) return;
+      const r = lookup(d,m[0],m[1]);
+      const st = r.found ? (r.hs!=null ? "done" : (dnum(d)<=dnum(lastPlayed) ? "wait" : "sched"))
+                         : (lastPlayed && dnum(d)<=dnum(lastPlayed) ? "nr" : "sched");
+      GAMES.push({date:d,time:TIMES[i]||"",h:m[0],a:m[1],hs:r.hs,as:r.as,st});
+    });
+  });
+  const EXTRA = D.results.filter(r=>!used.has(r)).map(r=>({date:r.d,time:"",h:r.h,a:r.a,hs:r.hs,as:r.as,st:r.hs!=null?"done":"sched",extra:true}));
+  GAMES.push(...EXTRA);
+
+  /* ---- 상단 ---- */
+  $("hTag").textContent = C.hero.tag || "";
+  $("hSmall").textContent = C.hero.small || "";
+  $("hTitle").innerHTML = C.hero.titleHtml || C.name;
+  $("hItems").innerHTML = (C.hero.items||[]).map(x=>`<div class="hi"><div class="ic">${x.ic}</div><div><div class="k">${x.k}</div><div class="v">${x.v}</div></div></div>`).join("");
+  const lp = lastPlayed ? `${YEAR}.${lastPlayed.replace("/",".")}(${dowOf(lastPlayed)})` : "";
+  $("asof").innerHTML = lp ? `경기 결과 <b>${lp}</b> 기준` : "아직 등록된 경기 결과가 없습니다";
+  $("resSub").textContent = lastPlayed ? `${lastPlayed} 경기까지 반영` : "";
+  $("footer").innerHTML = `${C.name} · 자료: ${C.sources||""} · ${D.updated.replace(/-/g,".")} 업데이트`;
+
+  /* ---- 순위 ---- */
+  const ST = {};
+  Object.values(GROUPS).flat().forEach(n=>ST[n]={n,w:0,d:0,l:0,rs:0,ra:0});
+  GAMES.filter(g=>g.st==="done"&&!g.extra).forEach(g=>{
+    const H=ST[g.h],A=ST[g.a]; if(!H||!A) return;
+    H.rs+=g.hs;H.ra+=g.as;A.rs+=g.as;A.ra+=g.hs;
+    if(g.hs>g.as){H.w++;A.l++}else if(g.hs<g.as){A.w++;H.l++}else{H.d++;A.d++}
+  });
+  const sortFn = (a,b) => {
+    const pa=(a.w+a.l)?a.w/(a.w+a.l):-1, pb=(b.w+b.l)?b.w/(b.w+b.l):-1;
+    return (pb-pa)||((b.rs-b.ra)-(a.rs-a.ra))||(b.w-a.w);
+  };
+
+  /* ---- ① 선수 기록 ---- */
+  const hasPlayer = !!(D.player && D.player.name && (D.bat.length || D.pit.length));
+  $("playerBody").hidden = !hasPlayer;
+  $("playerEmpty").hidden = hasPlayer;
+  if(hasPlayer){
+    const usedPG = new Set();
+    const gameInfo = label => {
+      const m = label.match(/(\d+)\s*경기\s*,\s*(.+?)\s*경기/);
+      const no = m ? m[1] : "";
+      const opp = m ? m[2].replace(/(중|고|초)$/,"") : "";
+      const g = GAMES.filter(x=>(x.h===ME&&x.a===opp)||(x.a===ME&&x.h===opp))
+                     .sort((a,b)=>dnum(a.date)-dnum(b.date)).find(x=>!usedPG.has(x));
+      let res = "";
+      if(g){
+        usedPG.add(g);
+        if(g.st==="done"){
+          const my = g.h===ME?g.hs:g.as, op = g.h===ME?g.as:g.hs;
+          res = (my>op?"승 ":my<op?"패 ":"무 ")+my+":"+op;
+        }
+      }
+      return {no, opp: m ? m[2] : label, date: g ? g.date : "", res};
+    };
+    const batGames = D.bat.map(g=>({...g, info: gameInfo(g.label)}));
+    usedPG.clear();
+    const pitGames = D.pit.map(g=>({...g, info: gameInfo(g.label)}));
+    const batTotal = batCalc(sumOf(D.bat,BK));
+    const ptr = sumOf(D.pit,PK);
+    const o = D.pit.reduce((s,g)=>s+outsOf(g.IP||0),0); ptr.IP = Math.floor(o/3)+(o%3)/10;
+    const pitTotal = pitCalc(ptr);
+    const pitched = r => PK.concat(["IP"]).some(k=>Number(r[k])>0);
+    const gLabel = i => `${i.no}경기 · ${i.date?i.date+" ":""}vs ${i.opp}` + (i.res?` <span class="chip ${i.res[0]==="승"?"red":"gray"}">${i.res}</span>`:"");
+
+    $("pSchool").textContent = school;
+    $("pName").textContent = D.player.name;
+    $("pMeta").textContent = C.name;
+    const kp = [["타율",f3s(batTotal.avg),1],["OPS",f3s(batTotal.ops),1],["안타",batTotal.H],["타점",batTotal.RBI],["득점",batTotal.R],["도루",batTotal.SB]];
+    $("kpis").innerHTML = kp.map(([k,v,m])=>`<div class="kpi${m?" main":""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+    const cols = ["구분","경기","<b>타율</b>","타석","타수","안타","1루타","2루타","3루타","홈런","루타","장타","득점","타점","볼넷","고의4구","사구","삼진","희번","희비","도루","<b>OPS</b>"];
+    const row = (label,r,cls) => `<tr class="${cls||""}"><td class="l">${label}</td><td>${r.G}</td><td class="hl">${f3s(r.avg)}</td><td>${r.PA}</td><td>${r.AB}</td><td><b>${r.H}</b></td><td>${r.B1}</td><td>${r.B2}</td><td>${r.B3}</td><td>${r.HR}</td><td>${r.TB}</td><td>${r.XBH}</td><td>${r.R}</td><td><b>${r.RBI}</b></td><td>${r.BB}</td><td>${r.IBB}</td><td>${r.HBP}</td><td>${r.SO}</td><td>${r.SH}</td><td>${r.SF}</td><td>${r.SB}</td><td class="hl">${f3s(r.ops)}</td></tr>`;
+    $("batTbl").innerHTML = `<thead><tr>${cols.map((c,i)=>`<th${i===0?' class="l"':""}>${c}</th>`).join("")}</tr></thead><tbody>`
+      + row("대회 합산", batTotal, "total") + batGames.map(g=>row(gLabel(g.info), batCalc(g))).join("") + `</tbody>`;
+
+    const pcols = ["구분","승","패","승률","<b>방어율</b>","경기","이닝","타자","투구수","피안타","실점","자책","피홈런","볼넷","고의4구","사구","폭투","보크","삼진","<b>WHIP</b>"];
+    const prow = (label,r,cls) => `<tr class="${cls||""}"><td class="l">${label}</td><td><b>${r.W}</b></td><td>${r.L}</td><td>${f3s(r.wpct)}</td><td class="hl">${f2(r.era)}</td><td>${r.G}</td><td><b>${r.ipS}</b></td><td>${r.BF}</td><td>${r.NP}</td><td>${r.H}</td><td>${r.R}</td><td>${r.ER}</td><td>${r.HR}</td><td>${r.BB}</td><td>${r.IBB}</td><td>${r.HBP}</td><td>${r.WP}</td><td>${r.BK}</td><td><b>${r.SO}</b></td><td class="hl">${f2(r.whip)}</td></tr>`;
+    $("pitTbl").innerHTML = `<thead><tr>${pcols.map((c,i)=>`<th${i===0?' class="l"':""}>${c}</th>`).join("")}</tr></thead><tbody>`
+      + prow("대회 합산", pitTotal, "total")
+      + pitGames.map(g=> pitched(g) ? prow(gLabel(g.info), pitCalc(g))
+          : `<tr><td class="l">${gLabel(g.info)}</td><td colspan="19" style="color:var(--muted)">등판 기록 없음</td></tr>`).join("")
+      + `</tbody>`;
+
+    const s = ST[ME], g = groupOf(ME);
+    if(s && g){
+      const rk = GROUPS[g].map(n=>ST[n]).sort(sortFn).findIndex(x=>x.n===ME)+1;
+      $("teamSummary").innerHTML = `${school} · <b>${g}조</b><br><b>${s.w}승 ${s.d}무 ${s.l}패</b><br>득 ${s.rs} · 실 ${s.ra} · 조 ${rk}위 (참고)`;
+    } else $("teamSummary").textContent = school;
+    const next = GAMES.filter(x=>(x.h===ME||x.a===ME)&&x.st==="sched").sort((a,b)=>dnum(a.date)-dnum(b.date)).slice(0,3);
+    $("nextGames").innerHTML = next.length ? next.map(x=>`<div class="ng"><span class="d">${x.date}(${dowOf(x.date)})${x.time?" "+x.time:""}</span>${x.extra?"":" · "+(C.leaguePlace||"")}<br><span class="vs">${ME} vs ${x.h===ME?x.a:x.h}</span> <span class="chip gray">예정</span></div>`).join("")
+      : `<div class="ng" style="grid-column:1/-1">남은 예정 경기가 없습니다.</div>`;
+  }
+  $("meChip").textContent = ME || "-";
+  $("meLabel").textContent = school ? school+" 경기" : "";
+
+  /* ---- ② 대회 정보 · 조 편성 · 대진표 ---- */
+  $("infoGrid").innerHTML = (C.info||[]).map(x=>`<div class="info"><div class="k">${x.k}</div><div class="v"${x.em?' style="color:var(--red)"':""}>${x.v}</div><div class="s">${x.s||""}</div></div>`).join("");
+  $("rules").innerHTML = (C.rules||[]).map(r=>`<li>${r}</li>`).join("");
+  $("groups").style.setProperty("--gcols", Math.min(Object.keys(GROUPS).length,5));
+  $("groups").innerHTML = Object.entries(GROUPS).map(([g,ts])=>
+    `<div class="grp"><div class="gh">${g}조</div><ul>${ts.map(t=>`<li class="${t===ME?"me":""}">${sp(t)}</li>`).join("")}</ul></div>`).join("");
+  const B = C.bracket;
+  $("bracketWrap").hidden = !B;
+  if(B){
+    $("bTitle").textContent = B.title || "결선 대진표";
+    $("bStatus").textContent = B.status || "";
+    $("bNote").textContent = B.note || "";
+    $("bracket").style.gridTemplateColumns = `repeat(${B.rounds.length},minmax(150px,1fr))`;
+    $("bracket").innerHTML = B.rounds.map(r=>`<div class="round"><div class="rh">${r.title}</div><div class="slots">${
+      r.matches.map(([a,b,w])=>`<div class="m${r.final?" final":""}"><div class="w">${w} · ${r.place||""}</div><div class="t"><span>${a}</span><span>vs</span><span>${b}</span></div></div>`).join("")}</div></div>`).join("");
+  }
+
+  /* ---- ③ 순위표 · 일자별 ---- */
+  $("standings").innerHTML = Object.entries(GROUPS).map(([g,ts])=>{
+    const rows = ts.map(n=>ST[n]).sort(sortFn);
+    return `<div class="card stand" style="padding:0;overflow:hidden"><table class="tbl">
+      <thead><tr><th class="l" style="padding-left:14px">${g}조</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득</th><th>실</th><th>득실</th></tr></thead><tbody>
+      ${rows.map((r,i)=>{const gp=r.w+r.d+r.l, df=r.rs-r.ra;
+        return `<tr class="${r.n===ME?"me":""}"><td class="team" style="padding-left:14px"><span class="rank ${gp&&i<ADV?"q":""}">${i+1}</span>${sp(r.n)}</td><td>${gp}</td><td><b>${r.w}</b></td><td>${r.d}</td><td>${r.l}</td><td>${r.rs}</td><td>${r.ra}</td><td class="${df>0?"pos":df<0?"neg":""}">${gp?(df>0?"+":"")+df:"-"}</td></tr>`}).join("")}
+      </tbody></table></div>`;
+  }).join("");
+  $("standNote").innerHTML = `순위는 승률 → 득실차 순으로 정렬한 <b>참고용</b>이며 공식 순위가 아닙니다.${ADV?` 파란 번호는 현재 ${ADV}위 이내.`:""}`;
+
+  const days = SCHEDULE.map(([d,lst])=>({d, off: Array.isArray(lst)?null:lst, place:C.leaguePlace||""}));
+  [...new Set(EXTRA.map(x=>x.date))].forEach(d=>{ if(!days.some(x=>x.d===d)) days.push({d,off:null,place:"결선"}); });
+  days.sort((a,b)=>dnum(a.d)-dnum(b.d));
+  $("days").innerHTML = days.map(({d,off,place})=>{
+    const w = dowOf(d), dc = w==="토"?"sat":w==="일"?"sun":"";
+    if(off) return `<div class="day off"><div class="dh"><span>${d} <span class="${dc}">(${w})</span></span><span>${place}</span></div><div class="offmsg">${off}</div></div>`;
+    const gs = GAMES.filter(x=>x.date===d);
+    const done = gs.some(x=>x.st!=="sched");
+    return `<div class="day ${done?"":"upcoming"}"><div class="dh"><span>${d} <span class="${dc}">(${w})</span></span><span>${place} · ${done?"결과":"예정"}</span></div>${
+      gs.map(x=>{
+        const me = ME&&(x.h===ME||x.a===ME)?" me":"";
+        let mid, hc="", ac="";
+        if(x.st==="done"){
+          const hw=x.hs>x.as, aw=x.as>x.hs;
+          hc=hw?"win":"lose"; ac=aw?"win":"lose";
+          mid=`<span class="${hw?"ws":""}">${x.hs}</span> : <span class="${aw?"ws":""}">${x.as}</span>`;
+        } else if(x.st==="wait") mid=`<span class="pend">결과 대기</span>`;
+        else if(x.st==="nr") mid=`<span class="pend warn">결과 미등록</span>`;
+        else mid=`<span class="pend">vs</span>`;
+        return `<div class="g${me}"><span class="tm">${x.time}</span><span class="h ${hc}">${x.h}</span><span class="sc">${mid}</span><span class="a ${ac}">${x.a}</span></div>`;
+      }).join("")}</div>`;
+  }).join("");
+}
+</script>
+</body>
+</html>

@@ -190,6 +190,15 @@ nav.toc .wrap{align-items:center}
 .ckpis .kpi .v small{font-size:15px;color:var(--muted);font-weight:700}
 .tbl .of{color:var(--muted);font-size:12px}
 .tbl tr.me-row td{background:var(--red-soft)}
+.stand td.pass{color:var(--navy)}
+.stand td.pass .chip{letter-spacing:0}
+.stand tr.elim td{color:#9aa4b5}
+@media (max-width:520px){
+  .stand .tbl th,.stand .tbl td{padding:8px 3px;font-size:13px}
+  .stand td.team{letter-spacing:0}
+  .stand .rank{width:20px;height:20px;margin-right:4px}
+  .stand td.pass .chip{padding:1px 6px;font-size:11px}
+}
 .stand .chip.tie{letter-spacing:0;margin-left:4px;font-size:11px;padding:1px 7px}
 @media (max-width:520px){ .ckpis{grid-template-columns:repeat(2,1fr)} }
 .empty-box{background:var(--card);border:1px dashed var(--blue-line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
@@ -492,6 +501,25 @@ function render(T){
       p+=b.length; }); return out; };
   const RANKS = {};
   Object.entries(GROUPS).forEach(([g,ts])=>{ RANKS[g] = flatRank(rankBlocks(ts, LG.filter(x=>x.st==="done"&&ts.includes(x.h)))); });
+  // 팀별 통과 확률: 조의 남은 경기 승패를 모두 나열(각 경기 반반, 무승부 제외, 추첨 균등). sure/elim = 모든 경우에 통과/탈락
+  const remOf = ts => LG.filter(x=>ts.includes(x.h) && x.st!=="done" && !(x.st==="pp"&&x.to)).sort((a,b)=>dnum(a.date)-dnum(b.date));
+  const CH = {};
+  if(ADV) Object.entries(GROUPS).forEach(([g,ts])=>{
+    const done = LG.filter(x=>x.st==="done"&&ts.includes(x.h)), rem = remOf(ts);
+    if(rem.length>16) return;
+    const N = 1<<rem.length, acc = {}; ts.forEach(n=>acc[n]={p:0,pass:0,out:0});
+    for(let m=0;m<N;m++){
+      const sim = done.concat(rem.map((x,i)=>(m>>i)&1 ? {h:x.h,a:x.a,hs:0,as:1} : {h:x.h,a:x.a,hs:1,as:0}));
+      let pos = 0;
+      rankBlocks(ts, sim, true).forEach(b=>{ const p = Math.max(0,Math.min(1,(ADV-pos)/b.length));
+        b.forEach(s=>{ acc[s.n].p+=p; if(p===1) acc[s.n].pass++; else if(p===0) acc[s.n].out++; }); pos+=b.length; });
+    }
+    ts.forEach(n=>CH[n]={p:acc[n].p/N, sure:acc[n].pass===N, elim:acc[n].out===N});
+  });
+  const chCell = n => { const c = CH[n]; if(!c) return "-";
+    if(c.sure) return `<span class="chip green">확정</span>`;
+    if(c.elim) return `<span class="chip gray">탈락</span>`;
+    return `<b>${Math.min(99,Math.max(1,Math.round(c.p*100)))}%</b>`; };
 
   /* ---- ① 선수 기록 ---- */
   const hasPlayer = !!(D.player && D.player.name && (D.bat.length || D.pit.length));
@@ -575,16 +603,16 @@ function render(T){
 
   /* ---- ③ 순위표 · 일자별 ---- */
   $("standings").innerHTML = Object.entries(GROUPS).map(([g,ts])=>{
-    return `<div class="card stand" style="padding:0;overflow:hidden"><table class="tbl">
-      <thead><tr><th class="l" style="padding-left:14px">${g}조</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득</th><th>실</th><th>득실</th></tr></thead><tbody>
+    return `<div class="card stand scroll" style="padding:0"><table class="tbl">
+      <thead><tr><th class="l" style="padding-left:14px">${g}조</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득</th><th>실</th><th>득실</th>${ADV?"<th>통과</th>":""}</tr></thead><tbody>
       ${RANKS[g].map(({s:r,rank,tie})=>{const gp=r.w+r.d+r.l, df=r.rs-r.ra;
-        return `<tr class="${r.n===ME?"me":""}"><td class="team" style="padding-left:14px"><span class="rank ${gp&&rank<=ADV?"q":""}">${rank}</span>${sp(r.n)}${tie&&gp?' <span class="chip gray tie">동률</span>':""}</td><td>${gp}</td><td><b>${r.w}</b></td><td>${r.d}</td><td>${r.l}</td><td>${r.rs}</td><td>${r.ra}</td><td class="${df>0?"pos":df<0?"neg":""}">${gp?(df>0?"+":"")+df:"-"}</td></tr>`}).join("")}
+        return `<tr class="${r.n===ME?"me":""}${CH[r.n]&&CH[r.n].elim?" elim":""}"><td class="team" style="padding-left:14px"><span class="rank ${gp&&rank<=ADV?"q":""}">${rank}</span>${sp(r.n)}${tie&&gp?' <span class="chip gray tie">동률</span>':""}</td><td>${gp}</td><td><b>${r.w}</b></td><td>${r.d}</td><td>${r.l}</td><td>${r.rs}</td><td>${r.ra}</td><td class="${df>0?"pos":df<0?"neg":""}">${gp?(df>0?"+":"")+df:"-"}</td>${ADV?`<td class="pass">${chCell(r.n)}</td>`:""}</tr>`}).join("")}
       </tbody></table></div>`;
   }).join("");
   $("standNote").innerHTML = (H2H
       ? `순위는 승률 → 승자승(동률 팀끼리 경기의 승수) 순입니다. 승자승까지 같으면 <b>추첨</b>이며, 조별리그를 마친 팀끼리는 "동률"로 표시합니다. 경기가 남은 팀끼리 승률이 같으면 승수 → 득실차로 임시 정렬합니다. <b>참고용</b>이며 공식 순위가 아닙니다.`
       : `순위는 승률 → 득실차 순으로 정렬한 <b>참고용</b>이며 공식 순위가 아닙니다.`)
-    + (ADV?` 파란 번호는 현재 ${ADV}위 이내.`:"");
+    + (ADV?` 파란 번호는 현재 ${ADV}위 이내.<br><b>통과</b>는 조 ${ADV}위 이내에 들 확률입니다. 남은 경기를 반반으로 보고 무승부는 제외했으며, 추첨은 균등 확률로 계산했습니다. <span class="chip green">확정</span>·<span class="chip gray">탈락</span>은 남은 경기 결과와 관계없이 정해진 경우입니다.${C.chanceNote?" "+C.chanceNote:""}`:"");
 
   const days = SCHEDULE.map(([d,lst])=>({d, off: Array.isArray(lst)?null:lst, place:C.leaguePlace||""}));
   [...new Set(GAMES.filter(x=>x.from).map(x=>x.date))].forEach(d=>{ if(!days.some(x=>x.d===d)) days.push({d,off:null,place:C.leaguePlace||""}); });

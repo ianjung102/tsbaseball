@@ -284,7 +284,7 @@ nav.toc .wrap{align-items:center}
     <span><b style="color:var(--red)">빨간 숫자</b> 승리팀 점수</span>
     <span class="chip red" id="meChip"></span> <span id="meLabel"></span>
     <span class="chip gray">결과 대기</span> 경기 진행 후 미입력
-    <span class="chip" style="background:#fff4e0;color:#b26a00">결과 미등록</span> 협회 사이트에 없음
+    <span class="chip" style="background:#fff4e0;color:#b26a00">순연</span> 우천 등으로 미진행 · 추후 일정 재편성
   </div>
   <div class="days" id="days"></div>
 </section>
@@ -415,7 +415,18 @@ function render(T){
       GAMES.push({date:d,time:TIMES[i]||"",h:m[0],a:m[1],hs:r.hs,as:r.as,st});
     });
   });
-  const EXTRA = D.results.filter(r=>!used.has(r)).map(r=>({date:r.d,time:"",h:r.h,a:r.a,hs:r.hs,as:r.as,st:r.hs!=null?"done":"sched",extra:true}));
+  // 순연: 원래 날짜에 결과가 없는 경기(우천 취소 등)가 조별리그 기간 안 다른 날짜에 나오면 그 날짜로 옮겨 조별리그 경기로 센다
+  const leagueEnd = SCHEDULE.length ? dnum(SCHEDULE[SCHEDULE.length-1][0]) : 0;
+  GAMES.filter(g=>g.st==="nr").forEach(g=>{
+    const r = D.results.find(x=>!used.has(x) && x.d!==g.date && dnum(x.d)<=leagueEnd &&
+      ((x.h===g.h&&x.a===g.a)||(x.h===g.a&&x.a===g.h)));
+    if(!r){ g.st="pp"; return; }
+    used.add(r); g.st="pp"; g.to=r.d;
+    const same = r.h===g.h, hs = same?r.hs:r.as, as = same?r.as:r.hs;
+    GAMES.push({date:r.d,time:"",h:g.h,a:g.a,hs,as,from:g.date,
+      st: hs!=null ? "done" : (dnum(r.d)<=dnum(lastPlayed) ? "wait" : "sched")});
+  });
+  const EXTRA =D.results.filter(r=>!used.has(r)).map(r=>({date:r.d,time:"",h:r.h,a:r.a,hs:r.hs,as:r.as,st:r.hs!=null?"done":"sched",extra:true}));
   GAMES.push(...EXTRA);
 
   /* ---- 상단 ---- */
@@ -451,7 +462,7 @@ function render(T){
       const m = label.match(/(\d+)\s*경기\s*,\s*(.+?)\s*경기/);
       const no = m ? m[1] : "";
       const opp = m ? m[2].replace(/(중|고|초)$/,"") : "";
-      const g = GAMES.filter(x=>(x.h===ME&&x.a===opp)||(x.a===ME&&x.h===opp))
+      const g = GAMES.filter(x=>x.st!=="pp"&&((x.h===ME&&x.a===opp)||(x.a===ME&&x.h===opp)))
                      .sort((a,b)=>dnum(a.date)-dnum(b.date)).find(x=>!usedPG.has(x));
       let res = "";
       if(g){
@@ -533,11 +544,12 @@ function render(T){
   $("standNote").innerHTML = `순위는 승률 → 득실차 순으로 정렬한 <b>참고용</b>이며 공식 순위가 아닙니다.${ADV?` 파란 번호는 현재 ${ADV}위 이내.`:""}`;
 
   const days = SCHEDULE.map(([d,lst])=>({d, off: Array.isArray(lst)?null:lst, place:C.leaguePlace||""}));
+  [...new Set(GAMES.filter(x=>x.from).map(x=>x.date))].forEach(d=>{ if(!days.some(x=>x.d===d)) days.push({d,off:null,place:C.leaguePlace||""}); });
   [...new Set(EXTRA.map(x=>x.date))].forEach(d=>{ if(!days.some(x=>x.d===d)) days.push({d,off:null,place:"결선"}); });
   days.sort((a,b)=>dnum(a.d)-dnum(b.d));
   $("days").innerHTML = days.map(({d,off,place})=>{
     const w = dowOf(d), dc = w==="토"?"sat":w==="일"?"sun":"";
-    if(off) return `<div class="day off"><div class="dh"><span>${d} <span class="${dc}">(${w})</span></span><span>${place}</span></div><div class="offmsg">${off}</div></div>`;
+    if(off && !GAMES.some(x=>x.date===d)) return `<div class="day off"><div class="dh"><span>${d} <span class="${dc}">(${w})</span></span><span>${place}</span></div><div class="offmsg">${off}</div></div>`;
     const gs = GAMES.filter(x=>x.date===d);
     const done = gs.some(x=>x.st!=="sched");
     return `<div class="day ${done?"":"upcoming"}"><div class="dh"><span>${d} <span class="${dc}">(${w})</span></span><span>${place} · ${done?"결과":"예정"}</span></div>${
@@ -549,9 +561,9 @@ function render(T){
           hc=hw?"win":"lose"; ac=aw?"win":"lose";
           mid=`<span class="${hw?"ws":""}">${x.hs}</span> : <span class="${aw?"ws":""}">${x.as}</span>`;
         } else if(x.st==="wait") mid=`<span class="pend">결과 대기</span>`;
-        else if(x.st==="nr") mid=`<span class="pend warn">결과 미등록</span>`;
+        else if(x.st==="pp") mid=`<span class="pend warn">순연${x.to?" → "+x.to:"<br>일정 미정"}</span>`;
         else mid=`<span class="pend">vs</span>`;
-        return `<div class="g${me}"><span class="tm">${x.time}</span><span class="h ${hc}">${x.h}</span><span class="sc">${mid}</span><span class="a ${ac}">${x.a}</span></div>`;
+        return `<div class="g${me}"><span class="tm">${x.from?x.from+"<br>순연":x.time}</span><span class="h ${hc}">${x.h}</span><span class="sc">${mid}</span><span class="a ${ac}">${x.a}</span></div>`;
       }).join("")}</div>`;
   }).join("");
 }

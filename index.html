@@ -723,7 +723,9 @@ function render(T){
       const mask = (1<<d)-1; let s=0,c=0,mn=1,mx=0;
       for(let m=0;m<N;m++) if((m&mask)===a){ s+=P[m]; c++; if(P[m]<mn) mn=P[m]; if(P[m]>mx) mx=P[m]; }
       const n = {p:s/c, fixed:mn===mx, val:mn, d};
-      if(!n.fixed && d<rem.length) n.kids = [0,1].map(b=>({w: b?rem[d].a:rem[d].h, ...grow(d+1, a|(b<<d))}));
+      // 좋은 결과(통과 확률이 높은 쪽, 같으면 우리 팀 승리)가 위로
+      if(!n.fixed && d<rem.length) n.kids = [0,1].map(b=>({w: b?rem[d].a:rem[d].h, ...grow(d+1, a|(b<<d))}))
+        .sort((x,y)=>(y.p-x.p)||((y.w===ME)-(x.w===ME)));
       return n;
     };
     const tnode = (n,label,isMe) => {

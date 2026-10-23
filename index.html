@@ -661,7 +661,9 @@ function render(T){
     const s = ST[ME], g = groupOf(ME);
     if(s && g){
       const mr = RANKS[g].find(x=>x.s.n===ME);
-      $("teamSummary").innerHTML = `${school} · <b>${g}조</b><br><b>${s.w}승 ${s.d}무 ${s.l}패</b><br>득 ${s.rs} · 실 ${s.ra} · 조 ${mr.rank}위${mr.tie&&s.w+s.d+s.l?" 동률":""} (참고)`;
+      const c = CH[ME];
+      const chTxt = !c ? "" : c.sure ? " · <b>통과 확정</b>" : c.elim ? " · 탈락" : ` · 통과 확률 <b>${Math.min(99,Math.max(1,Math.round(c.p*100)))}%</b>`;
+      $("teamSummary").innerHTML = `${school} · <b>${g}조</b><br><b>${s.w}승 ${s.d}무 ${s.l}패</b><br>득 ${s.rs} · 실 ${s.ra}<br>조 ${mr.rank}위${mr.tie&&s.w+s.d+s.l?" 동률":""}${chTxt}`;
     } else $("teamSummary").textContent = school;
     const next = GAMES.filter(x=>(x.h===ME||x.a===ME)&&x.st==="sched").sort((a,b)=>dnum(a.date)-dnum(b.date)).slice(0,3);
     $("nextGames").innerHTML = next.length ? next.map(x=>`<div class="ng"><span class="d">${x.date}(${dowOf(x.date)})${x.time?" "+x.time:""}</span>${x.extra?"":" · "+(C.leaguePlace||"")}<br><span class="vs">${ME} vs ${x.h===ME?x.a:x.h}</span> <span class="chip gray">예정</span></div>`).join("")

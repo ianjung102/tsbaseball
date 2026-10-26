@@ -62,6 +62,11 @@ table{border-collapse:collapse;width:100%}
 .tbl td.l,.tbl th.l{text-align:left}
 .tbl tr.total td{background:var(--blue-soft);font-weight:700}
 .tbl tr.total td:first-child{color:var(--blue)}
+/* 타자 표: 값입력.xlsx처럼 직접 입력값만 파란 칸, 계산값·대회 합산은 색 없음 */
+#batTbl td.in{background:#dde8fb;border-left:2px solid #fff}
+#batTbl tr.total td{background:none;border-bottom:2px solid var(--navy)}
+#batTbl tr.total td:first-child{color:var(--navy)}
+.in-key{display:inline-block;width:12px;height:12px;border-radius:3px;background:#dde8fb;border:1px solid var(--blue-line);vertical-align:-1px;margin-right:3px}
 .tbl .hl{color:var(--red);font-weight:900}
 .tbl .empty td{color:var(--muted);padding:18px}
 
@@ -331,6 +336,7 @@ nav.toc .wrap{align-items:center}
       <h3>수비 기록 <span class="chip">포지션별 소화 이닝</span></h3>
       <div class="card scroll"><table class="tbl" id="defTbl"></table></div>
     </div>
+    <div class="note"><span class="in-key"></span>파란 칸은 기록지에서 직접 입력한 값이고, 색이 없는 칸은 계산한 값입니다. 출루율 = (안타+볼넷+고의4구+사구) ÷ (타수+볼넷+고의4구+사구+희비), 장타율 = 루타 ÷ 타수, OPS = 출루율 + 장타율. 볼넷에는 고의4구를 넣지 않고 따로 셉니다.</div>
     <div class="note">방어율·WHIP와 수비 이닝은 이닝을 아웃카운트로 환산해 계산합니다 (2.1 = 2⅓이닝). 빈 기록은 0으로 봅니다. 출전 이닝 = 수비 포지션 이닝 + 지명타자(DH) 이닝, 출전율 = 출전 이닝 ÷ 팀 전체 이닝.</div>
   </div>
   <div class="empty-box" id="playerEmpty" hidden>이 대회에는 입력된 선수 기록이 없습니다. 대회 폴더에 값입력.xlsx를 넣고 /bb-update를 실행하세요.</div>
@@ -405,9 +411,12 @@ const sumOf = (rows,keys) => keys.reduce((o,k)=>(o[k]=rows.reduce((s,g)=>s+(Numb
 function batCalc(r){
   const H = r.B1+r.B2+r.B3+r.HR, TB = r.B1+2*r.B2+3*r.B3+4*r.HR, XBH = r.B2+r.B3+r.HR;
   const avg = r.AB ? H/r.AB : null;
-  const obpDen = r.AB+r.BB+r.HBP+r.SF;
-  const ops = (r.AB && obpDen) ? (H+r.BB+r.HBP)/obpDen + TB/r.AB : null;
-  return {...r, H, TB, XBH, avg, ops};
+  // 볼넷(BB)과 고의4구(IBB)는 따로 입력. 출루율은 둘 다 넣는다
+  const obpDen = r.AB+r.BB+r.IBB+r.HBP+r.SF;
+  const obp = obpDen ? (H+r.BB+r.IBB+r.HBP)/obpDen : null;
+  const slg = r.AB ? TB/r.AB : null;
+  const ops = (obp!==null && slg!==null) ? obp+slg : null;
+  return {...r, H, TB, XBH, avg, obp, slg, ops};
 }
 function pitCalc(r){
   const outs = outsOf(r.IP||0), inn = outs/3;
@@ -626,11 +635,13 @@ function render(T){
     $("pSchool").textContent = school;
     $("pName").textContent = D.player.name;
     $("pMeta").textContent = C.name;
-    const kp = [["타율",f3s(batTotal.avg),1],["OPS",f3s(batTotal.ops),1],["안타",batTotal.H],["타점",batTotal.RBI],["득점",batTotal.R],["도루",batTotal.SB]];
+    const kp = [["타율",f3s(batTotal.avg),1],["출루율",f3s(batTotal.obp),1],["OPS",f3s(batTotal.ops),1],["타점",batTotal.RBI],["득점",batTotal.R],["도루",batTotal.SB]];
     $("kpis").innerHTML = kp.map(([k,v,m])=>`<div class="kpi${m?" main":""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 
-    const cols = ["구분","경기","<b>타율</b>","타석","타수","안타","1루타","2루타","3루타","홈런","루타","장타","득점","타점","볼넷","고의4구","사구","삼진","희번","희비","도루","<b>OPS</b>"];
-    const row = (label,r,cls) => `<tr class="${cls||""}"><td class="l">${label}</td><td>${r.G}</td><td class="hl">${f3s(r.avg)}</td><td>${r.PA}</td><td>${r.AB}</td><td><b>${r.H}</b></td><td>${r.B1}</td><td>${r.B2}</td><td>${r.B3}</td><td>${r.HR}</td><td>${r.TB}</td><td>${r.XBH}</td><td>${r.R}</td><td><b>${r.RBI}</b></td><td>${r.BB}</td><td>${r.IBB}</td><td>${r.HBP}</td><td>${r.SO}</td><td>${r.SH}</td><td>${r.SF}</td><td>${r.SB}</td><td class="hl">${f3s(r.ops)}</td></tr>`;
+    // 셀 색은 값입력.xlsx와 같게: 경기별 행의 직접 입력값은 파란 칸(in), 계산값과 대회 합산 행은 색 없음
+    const cols = ["구분","경기","<b>타율</b>","타석","타수","안타","1루타","2루타","3루타","홈런","루타","장타","득점","타점","볼넷","고의4구","사구","삼진","희번","희비","도루","출루율","장타율","<b>OPS</b>"];
+    const row = (label,r,cls) => { const c = cls==="total" ? "" : ' class="in"';
+      return `<tr class="${cls||""}"><td class="l">${label}</td><td${c}>${r.G}</td><td><b>${f3s(r.avg)}</b></td><td${c}>${r.PA}</td><td${c}>${r.AB}</td><td><b>${r.H}</b></td><td${c}>${r.B1}</td><td${c}>${r.B2}</td><td${c}>${r.B3}</td><td${c}>${r.HR}</td><td>${r.TB}</td><td>${r.XBH}</td><td${c}>${r.R}</td><td${c}><b>${r.RBI}</b></td><td${c}>${r.BB}</td><td${c}>${r.IBB}</td><td${c}>${r.HBP}</td><td${c}>${r.SO}</td><td${c}>${r.SH}</td><td${c}>${r.SF}</td><td${c}>${r.SB}</td><td>${f3s(r.obp)}</td><td>${f3s(r.slg)}</td><td><b>${f3s(r.ops)}</b></td></tr>`; };
     $("batTbl").innerHTML = `<thead><tr>${cols.map((c,i)=>`<th${i===0?' class="l"':""}>${c}</th>`).join("")}</tr></thead><tbody>`
       + row("대회 합산", batTotal, "total") + batGames.map(g=>row(gLabel(g.info), batCalc(g))).join("") + `</tbody>`;
 

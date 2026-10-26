@@ -330,7 +330,7 @@ nav.toc .wrap{align-items:center}
       <h3>수비 기록 <span class="chip">포지션별 소화 이닝</span></h3>
       <div class="card scroll"><table class="tbl" id="defTbl"></table></div>
     </div>
-    <div class="note">출루율 = (안타+볼넷+고의4구+사구) ÷ (타수+볼넷+고의4구+사구+희비), 장타율 = 루타 ÷ 타수, OPS = 출루율 + 장타율. 볼넷에는 고의4구를 넣지 않고 따로 셉니다.</div>
+    <div class="note">출루율 = (안타+볼넷+사구) ÷ (타수+볼넷+사구+희비), 장타율 = 루타 ÷ 타수, OPS = 출루율 + 장타율. KBO 기록 방식대로 볼넷에는 고의4구가 포함되고, 고의4구 칸은 그중 고의4구 수입니다.</div>
     <div class="note">방어율·WHIP와 수비 이닝은 이닝을 아웃카운트로 환산해 계산합니다 (2.1 = 2⅓이닝). 빈 기록은 0으로 봅니다. 출전 이닝 = 수비 포지션 이닝 + 지명타자(DH) 이닝, 출전율 = 출전 이닝 ÷ 팀 전체 이닝.</div>
   </div>
   <div class="empty-box" id="playerEmpty" hidden>이 대회에는 입력된 선수 기록이 없습니다. 대회 폴더에 값입력.xlsx를 넣고 /bb-update를 실행하세요.</div>
@@ -405,9 +405,9 @@ const sumOf = (rows,keys) => keys.reduce((o,k)=>(o[k]=rows.reduce((s,g)=>s+(Numb
 function batCalc(r){
   const H = r.B1+r.B2+r.B3+r.HR, TB = r.B1+2*r.B2+3*r.B3+4*r.HR, XBH = r.B2+r.B3+r.HR;
   const avg = r.AB ? H/r.AB : null;
-  // 볼넷(BB)과 고의4구(IBB)는 따로 입력. 출루율은 둘 다 넣는다
-  const obpDen = r.AB+r.BB+r.IBB+r.HBP+r.SF;
-  const obp = obpDen ? (H+r.BB+r.IBB+r.HBP)/obpDen : null;
+  // KBO 방식: 볼넷(BB)에 고의4구가 포함됨(IBB는 그중 고의4구 수)
+  const obpDen = r.AB+r.BB+r.HBP+r.SF;
+  const obp = obpDen ? (H+r.BB+r.HBP)/obpDen : null;
   const slg = r.AB ? TB/r.AB : null;
   const ops = (obp!==null && slg!==null) ? obp+slg : null;
   return {...r, H, TB, XBH, avg, obp, slg, ops};

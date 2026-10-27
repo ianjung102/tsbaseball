@@ -260,7 +260,7 @@ nav.toc .wrap{align-items:center}
   .stand .rank{width:20px;height:20px;margin-right:4px}
   .stand td.pass .chip{padding:1px 6px;font-size:11px}
 }
-.stand .chip.tie{letter-spacing:0;margin-left:4px;font-size:11px;padding:1px 7px}
+.stand .chip.tie{letter-spacing:0;font-size:11px;padding:1px 7px}
 @media (max-width:520px){ .ckpis{grid-template-columns:repeat(2,1fr)} }
 .empty-box{background:var(--card);border:1px dashed var(--blue-line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
 @media (max-width:520px){ .tsel select{max-width:200px} }
@@ -734,10 +734,12 @@ function render(T){
 
   /* ---- ③ 순위표 · 일자별 ---- */
   $("standings").innerHTML = Object.entries(GROUPS).map(([g,ts])=>{
+    // 동률 칩은 맨 오른쪽 열에 둔다(통과 열이 먼저 보이게). 그 조에 동률이 있을 때만 열을 만든다
+    const hasTie = RANKS[g].some(({s:r,tie})=>tie&&r.w+r.d+r.l);
     return `<div class="card stand scroll" style="padding:0"><table class="tbl">
-      <thead><tr><th class="l" style="padding-left:14px">${g}조</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득</th><th>실</th><th>득실</th>${ADV?"<th>통과</th>":""}</tr></thead><tbody>
+      <thead><tr><th class="l" style="padding-left:14px">${g}조</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득</th><th>실</th><th>득실</th>${ADV?"<th>통과</th>":""}${hasTie?"<th></th>":""}</tr></thead><tbody>
       ${RANKS[g].map(({s:r,rank,tie})=>{const gp=r.w+r.d+r.l, df=r.rs-r.ra;
-        return `<tr class="${r.n===ME?"me":""}${CH[r.n]&&CH[r.n].elim?" elim":""}"><td class="team" style="padding-left:14px"><span class="rank ${gp&&rank<=ADV?"q":""}">${rank}</span>${sp(r.n)}${tie&&gp?' <span class="chip gray tie">동률</span>':""}</td><td>${gp}</td><td><b>${r.w}</b></td><td>${r.d}</td><td>${r.l}</td><td>${r.rs}</td><td>${r.ra}</td><td class="${df>0?"pos":df<0?"neg":""}">${gp?(df>0?"+":"")+df:"-"}</td>${ADV?`<td class="pass">${chCell(r.n)}</td>`:""}</tr>`}).join("")}
+        return `<tr class="${r.n===ME?"me":""}${CH[r.n]&&CH[r.n].elim?" elim":""}"><td class="team" style="padding-left:14px"><span class="rank ${gp&&rank<=ADV?"q":""}">${rank}</span>${sp(r.n)}</td><td>${gp}</td><td><b>${r.w}</b></td><td>${r.d}</td><td>${r.l}</td><td>${r.rs}</td><td>${r.ra}</td><td class="${df>0?"pos":df<0?"neg":""}">${gp?(df>0?"+":"")+df:"-"}</td>${ADV?`<td class="pass">${chCell(r.n)}</td>`:""}${hasTie?`<td class="tiec">${tie&&gp?'<span class="chip gray tie">동률</span>':""}</td>`:""}</tr>`}).join("")}
       </tbody></table></div>`;
   }).join("");
   $("standNote").innerHTML = (H2H

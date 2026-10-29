@@ -668,8 +668,12 @@ function render(T){
       const chTxt = !c ? "" : c.sure ? " · <b>통과 확정</b>" : c.elim ? " · 탈락" : ` · 통과 확률 <b>${Math.min(99,Math.max(1,Math.round(c.p*100)))}%</b>`;
       $("teamSummary").innerHTML = `${school} · <b>${g}조</b><br><b>${s.w}승 ${s.d}무 ${s.l}패</b><br>득 ${s.rs} · 실 ${s.ra}<br>조 ${mr.rank}위${mr.tie&&s.w+s.d+s.l?" 동률":""}${chTxt}`;
     } else $("teamSummary").textContent = school;
-    const next = GAMES.filter(x=>(x.h===ME||x.a===ME)&&x.st==="sched").sort((a,b)=>dnum(a.date)-dnum(b.date)).slice(0,3);
-    $("nextGames").innerHTML = next.length ? next.map(x=>`<div class="ng"><span class="d">${x.date}(${dowOf(x.date)})${x.time?" "+x.time:""}</span>${x.extra?"":" · "+(C.leaguePlace||"")}<br><span class="vs">${ME} vs ${x.h===ME?x.a:x.h}</span> <span class="chip gray">예정</span></div>`).join("")
+    // 결선 대진표(bracket)에 팀 이름이 들어간 경기도 다음 경기로 보여 준다. 사이트에 같은 두 팀 경기가 그 날짜 이후로 올라오면 그쪽을 쓴다
+    const bkNext = ((C.bracket||{}).rounds||[]).flatMap(r=>(r.matches||[]).filter(m=>m[0]===ME||m[1]===ME).map(m=>{
+        const [date,time] = String(m[2]||"").split(" "); return {h:m[0],a:m[1],date,time,place:r.place,round:r.title}; }))
+      .filter(b=>/^\d+\/\d+$/.test(b.date) && !GAMES.some(x=>((x.h===b.h&&x.a===b.a)||(x.h===b.a&&x.a===b.h))&&dnum(x.date)>=dnum(b.date)));
+    const next = [...GAMES.filter(x=>(x.h===ME||x.a===ME)&&x.st==="sched"), ...bkNext].sort((a,b)=>dnum(a.date)-dnum(b.date)).slice(0,3);
+    $("nextGames").innerHTML = next.length ? next.map(x=>`<div class="ng"><span class="d">${x.date}(${dowOf(x.date)})${x.time?" "+x.time:""}</span>${x.round?` · ${x.round} · ${x.place||""}`:x.extra?"":" · "+(C.leaguePlace||"")}<br><span class="vs">${ME} vs ${x.h===ME?x.a:x.h}</span> <span class="chip gray">예정</span></div>`).join("")
       : `<div class="ng" style="grid-column:1/-1">남은 예정 경기가 없습니다.</div>`;
 
     /* ---- 수비 포지션 비중 (도넛): 대회 합산 이닝을 포지션별로. 외야(LF·CF·RF)는 한 조각, 미출전은 회색 ---- */

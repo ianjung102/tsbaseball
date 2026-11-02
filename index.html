@@ -613,8 +613,9 @@ function render(T){
   if(hasPlayer){
     const usedPG = new Set();
     const gameInfo = label => {
-      // "1경기, 경원중" (새 형식) 또는 "1경기, 경원중 경기" (예전 형식)
-      const m = label.match(/(\d+)\s*경기\s*,\s*(.+?)(?:\s*경기)?\s*$/);
+      // "1경기, 경원중" (새 형식), "5경기, 청원중, 16강" (결선 라운드 표기) 또는 "1경기, 경원중 경기" (예전 형식)
+      const m = label.match(/(\d+)\s*경기\s*,\s*([^,]+?)(?:\s*경기)?\s*(?:,\s*(.+?))?\s*$/);
+      const round = m && m[3] ? m[3] : "";
       const no = m ? m[1] : "";
       const opp = m ? m[2].replace(/(중|고|초)$/,"") : "";
       const g = GAMES.filter(x=>x.st!=="pp"&&((x.h===ME&&x.a===opp)||(x.a===ME&&x.h===opp)))
@@ -627,7 +628,7 @@ function render(T){
           res = (my>op?"승 ":my<op?"패 ":"무 ")+my+":"+op;
         }
       }
-      return {no, opp: m ? m[2] : label, date: g ? g.date : "", res};
+      return {no, round, opp: m ? m[2] : label, date: g ? g.date : "", res};
     };
     const batGames = D.bat.map(g=>({...g, info: gameInfo(g.label)}));
     usedPG.clear();
@@ -637,7 +638,7 @@ function render(T){
     const o = D.pit.reduce((s,g)=>s+outsOf(g.IP||0),0); ptr.IP = Math.floor(o/3)+(o%3)/10;
     const pitTotal = pitCalc(ptr);
     const pitched = r => PK.concat(["IP"]).some(k=>Number(r[k])>0);
-    const gLabel = i => `${i.no}경기 · ${i.date?i.date+" ":""}vs ${i.opp}` + (i.res?` <span class="chip ${i.res[0]==="승"?"red":"gray"}">${i.res}</span>`:"");
+    const gLabel = i => `${i.no}경기 · ${i.round?i.round+" · ":""}${i.date?i.date+" ":""}vs ${i.opp}` + (i.res?` <span class="chip ${i.res[0]==="승"?"red":"gray"}">${i.res}</span>`:"");
 
     $("pSchool").textContent = school;
     $("pName").textContent = D.player.name;

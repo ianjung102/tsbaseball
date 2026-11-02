@@ -102,13 +102,25 @@ table{border-collapse:collapse;width:100%}
 .grp li.me{color:var(--red);background:var(--red-soft)}
 
 /* ---------- 결선 대진표 ---------- */
-.bracket{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:0 18px;min-width:700px;padding:6px 2px}
-.round{display:flex;flex-direction:column}
+.bracket{position:relative;display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:0 34px;min-width:760px;padding:6px 2px}
+/* 연결선: 이긴 팀 줄에서 다음 경기 칸으로 이어지는 선을 강조(우리 팀은 빨강), 승부 전 경기는 연한 회색 */
+.bracket svg.bl{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.bracket svg.bl path{fill:none;stroke:var(--blue);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.bracket svg.bl path.me{stroke:var(--red)}
+.bracket svg.bl .off path{stroke:#cfd8e6;stroke-width:1.5}
+.round{position:relative;z-index:1;display:flex;flex-direction:column}
 .round .rh{text-align:center;font-weight:900;color:var(--navy);margin-bottom:8px}
-.round .slots{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px}
-.m{background:var(--card);border:1px solid var(--blue-line);border-radius:10px;padding:8px 10px;font-size:13px}
-.m .t{display:flex;justify-content:space-between;font-weight:700;color:var(--muted)}
-.m .w{color:var(--blue);font-weight:700}
+.round .slots{flex:1;display:flex;flex-direction:column;justify-content:space-around}
+.round .slot{padding:5px 0}   /* 칸 높이를 같게 해 다음 라운드 칸이 두 경기 가운데에 오게 함 */
+.m{background:var(--card);border:1px solid var(--blue-line);border-radius:10px;padding:6px 8px;font-size:13px}
+.m .w{color:var(--blue);font-weight:700;font-size:12px;margin:0 0 3px 2px}
+.m .bt{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 6px;border-radius:6px;font-weight:700;color:var(--muted)}
+.m .bt .bs{text-align:right;white-space:nowrap;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums}
+.m .bt .bs small{font-size:11px;font-weight:500;color:var(--muted);margin-right:4px}
+.m .bt.win{background:var(--blue-soft);color:var(--navy)}
+.m .bt.win .bs{color:var(--red)}
+.m .bt.lose,.m .bt.lose .bs{color:#9aa4b5}
+.m .bt.me .bn{color:var(--red)}
 .m .sd{font-style:normal;font-weight:900;color:var(--navy)}
 .m.final{border:2px solid var(--red);background:var(--red-soft)}
 .m.final .w{color:var(--red)}
@@ -757,10 +769,39 @@ function render(T){
     $("bStatus").textContent = B.status || "";
     $("bNote").textContent = B.note || "";
     $("bracket").style.gridTemplateColumns = `repeat(${B.rounds.length},minmax(150px,1fr))`;
-    $("bracket").innerHTML = B.rounds.map(r=>`<div class="round"><div class="rh">${r.title}</div><div class="slots">${
-      r.matches.map(([a,b,w])=>{ const [ca,cb] = [0,1].map(i=>CIRC[String(r.sides||"")[i]]||"");
-        return `<div class="m${r.final?" final":""}"><div class="w">${w} · ${r.place||""}</div><div class="t"><span>${ca?`<i class="sd">${ca}</i> `:""}${a}</span><span>vs</span><span>${b}${cb?` <i class="sd">${cb}</i>`:""}</span></div></div>`; }).join("")}</div></div>`).join("");
+    // 경기마다 결선 경기 결과(점수·추첨)와 이긴 팀. 다음 라운드 i번째 칸은 이전 라운드 2i·2i+1번째 경기 승자 (왼쪽 팀 = 2i)
+    const BR = B.rounds.map(r=>r.matches.map(([a,b,w])=>{
+      const g = GAMES.find(x=>x.extra&&x.st==="done"&&((x.h===a&&x.a===b)||(x.h===b&&x.a===a))), sw = g && winSide(g);
+      const sc = t => g ? (g.h===t?g.hs:g.as) : null, lt = t => g&&g.hl!=null ? (g.h===t?g.hl:g.al) : null;
+      return {a,b,w,win: sw ? (sw==="h"?g.h:g.a) : null, sa:sc(a), sb:sc(b), la:lt(a), lb:lt(b)};
+    }));
+    const btRow = (m,t,s,l,c) => `<div class="bt${m.win?(m.win===t?" win":" lose"):""}${t===ME?" me":""}"><span class="bn">${c?`<i class="sd">${c}</i> `:""}${t}</span><span class="bs">${l!=null?`<small>추첨 ${l}</small>`:""}${s!=null?s:""}</span></div>`;
+    $("bracket").innerHTML = `<svg class="bl" aria-hidden="true"></svg>` + B.rounds.map((r,ri)=>`<div class="round"><div class="rh">${r.title}</div><div class="slots">${
+      BR[ri].map((m,i)=>{ const [ca,cb] = [0,1].map(k=>CIRC[String(r.sides||"")[k]]||"");
+        return `<div class="slot"><div class="m${r.final?" final":""}" data-r="${ri}" data-i="${i}"><div class="w">${m.w} · ${r.place||""}</div>${btRow(m,m.a,m.sa,m.la,ca)}${btRow(m,m.b,m.sb,m.lb,cb)}</div></div>`; }).join("")}</div></div>`).join("");
     $("bSides").hidden = !B.rounds.some(r=>r.sides);
+    // 연결선은 칸 위치를 재서 그린다(글꼴 로딩·창 크기 변화 때 다시 그림)
+    const el = $("bracket");
+    el._draw = () => {
+      const svg = el.querySelector("svg.bl"); if(!svg) return;
+      const o = el.getBoundingClientRect(); if(!o.width) return;
+      svg.setAttribute("width", el.scrollWidth); svg.setAttribute("height", el.scrollHeight);
+      const box = (r,i) => el.querySelector(`.m[data-r="${r}"][data-i="${i}"]`);
+      const rowY = (bx,k) => { const t = bx.querySelectorAll(".bt")[k].getBoundingClientRect(); return t.top+t.height/2-o.top; };
+      let off = "", on = "";
+      BR.slice(0,-1).forEach((ms,r)=>ms.forEach((m,i)=>{
+        const A = box(r,i), N = box(r+1,i>>1); if(!A||!N) return;
+        const ra = A.getBoundingClientRect(), rn = N.getBoundingClientRect();
+        const x1 = ra.right-o.left, x2 = rn.left-o.left, xm = (x1+x2)/2;
+        const k = m.win ? (m.win===m.a?0:1) : -1;
+        const d = `M${x1} ${k>=0?rowY(A,k):ra.top+ra.height/2-o.top}H${xm}V${rowY(N,i&1)}H${x2}`;
+        if(k<0) off += `<path d="${d}"/>`; else on += `<path class="${m.win===ME?"me":""}" d="${d}"/>`;
+      }));
+      svg.innerHTML = `<g class="off">${off}</g>${on}`;
+    };
+    if(!el._ro && window.ResizeObserver){ el._ro = new ResizeObserver(()=>el._draw()); el._ro.observe(el); }
+    requestAnimationFrame(()=>el._draw());
+    if(document.fonts) document.fonts.ready.then(()=>el._draw());
   }
 
   /* ---- ③ 순위표 · 일자별 ---- */
